@@ -1,8 +1,53 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/pages/bloc/contador_bloc.dart';
+import 'package:flutter_application_1/SuccesView.dart';
+import 'package:flutter_application_1/failure.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/formulario_cubit.dart';
 
+// -----------------------------
+// WIDGET CONTADOR
+// -----------------------------
+class ContadorWidget extends StatelessWidget {
+  const ContadorWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<FormularioCubit, FormularioState>(
+      builder: (context, state) {
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          child: state.cargando
+              ? const Center(
+                  key: ValueKey("loadingCounter"),
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(
+                      color: Colors.deepPurpleAccent,
+                    ),
+                  ),
+                )
+              : Column(
+                  key: const ValueKey("counterContent"),
+                  children: [
+                    Text(
+                      "Contador: ${state.contador}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+// -----------------------------
+// FORMULARIO
+// -----------------------------
 class InitialForm extends StatefulWidget {
   const InitialForm({super.key});
 
@@ -92,7 +137,6 @@ class _InitialFormState extends State<InitialForm>
   @override
   Widget build(BuildContext context) {
     final formularioCubit = context.read<FormularioCubit>();
-    final contadorBloc = context.read<ContadorBloc>();
 
     return AnimatedBuilder(
       animation: _glowAnimation,
@@ -100,7 +144,7 @@ class _InitialFormState extends State<InitialForm>
         return Scaffold(
           backgroundColor: Colors.grey[900],
           appBar: AppBar(
-            title: const Text("Formulario + Contador"),
+            title: const Text("Formulario"),
             backgroundColor: Colors.indigoAccent,
           ),
           body: Padding(
@@ -176,27 +220,21 @@ class _InitialFormState extends State<InitialForm>
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    AnimatedOpacity(
-                                      opacity: 1,
-                                      duration: const Duration(
-                                        milliseconds: 500,
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            "Correo: ${state.correo}",
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
+                                    Column(
+                                      children: [
+                                        Text(
+                                          "Correo: ${state.correo}",
+                                          style: const TextStyle(
+                                            color: Colors.grey,
                                           ),
-                                          Text(
-                                            "Contraseña: ${state.contrasena}",
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
+                                        ),
+                                        Text(
+                                          "Contraseña: ${state.contrasena}",
+                                          style: const TextStyle(
+                                            color: Colors.grey,
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -205,48 +243,12 @@ class _InitialFormState extends State<InitialForm>
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
 
-                // CONTADOR
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  color: Colors.grey[850],
-                  elevation: 6,
-                  shadowColor: Colors.indigoAccent.withOpacity(0.6),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: BlocBuilder<ContadorBloc, ContadorState>(
-                      builder: (context, state) {
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          child: state.cargando
-                              ? const Center(
-                                  key: ValueKey("loadingCounter"),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: CircularProgressIndicator(
-                                      color: Colors.indigoAccent,
-                                    ),
-                                  ),
-                                )
-                              : Text(
-                                  "Contador: ${state.contador}",
-                                  key: ValueKey(state.contador),
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.indigoAccent,
-                                  ),
-                                ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const Spacer(),
+                const SizedBox(height: 16),
 
+                // -----------------------------
+                // BOTÓN GUARDAR DATOS
+                // -----------------------------
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.indigoAccent,
@@ -259,26 +261,61 @@ class _InitialFormState extends State<InitialForm>
                     ),
                   ),
                   onPressed: () async {
-                    // 1️⃣ Formulario loading
+                    // 1️⃣ Mostrar loading solo en formulario
                     formularioCubit.setCargando(true);
-                    await Future.delayed(const Duration(seconds: 2));
-                    formularioCubit.actualizarDatos(
-                      correoController.text,
-                      contrasenaController.text,
-                    );
-                    formularioCubit.setCargando(false);
+                    await Future.delayed(const Duration(milliseconds: 500));
 
-                    // 2️⃣ Contador loading
-                    contadorBloc.add(const SetCargando(true));
-                    await Future.delayed(const Duration(seconds: 2));
-                    contadorBloc.add(Incrementar());
-                    contadorBloc.add(const SetCargando(false));
+                    final correo = correoController.text;
+                    final contrasena = contrasenaController.text;
+
+                    if (correo.isEmpty || !correo.contains("@")) {
+                      // Error → FailureView
+                      formularioCubit.setCargando(false);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FailureView(
+                            mensaje: "Correo inválido",
+                            onRetry: () => Navigator.pop(context),
+                          ),
+                        ),
+                      );
+                    } else {
+                      // Success → Actualizar datos
+                      formularioCubit.actualizarDatos(correo, contrasena);
+                      formularioCubit.setCargando(false);
+
+                      // 2️⃣ Actualizar contador con loading
+                      formularioCubit.setCargando(true);
+                      await Future.delayed(const Duration(milliseconds: 500));
+                      formularioCubit.incrementarContador();
+                      formularioCubit.setCargando(false);
+
+                      // 3️⃣ Ir a SuccessView
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SuccessView(
+                            correo: correo,
+                            contrasena: contrasena,
+                            onBack: () => Navigator.pop(context),
+                          ),
+                        ),
+                      );
+                    }
                   },
                   child: const Text(
                     "Guardar datos",
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // -----------------------------
+                // WIDGET DEL CONTADOR
+                // -----------------------------
+                const ContadorWidget(),
               ],
             ),
           ),
