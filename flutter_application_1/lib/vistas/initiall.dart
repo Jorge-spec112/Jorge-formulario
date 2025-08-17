@@ -155,12 +155,11 @@ class _InitialFormState extends State<InitialForm>
   final correoController = TextEditingController();
   final contrasenaController = TextEditingController();
 
-  bool cargandoFormulario = false;
-  bool cargandoUsuarios = false;
-  bool cargandoContador = false;
-
   bool mostrarUsuarios = false;
   bool mostrarContador = false;
+
+  bool cargandoUsuarios = false;
+  bool cargandoContador = false;
   bool actualizando = false;
 
   late AnimationController _animController;
@@ -188,18 +187,6 @@ class _InitialFormState extends State<InitialForm>
     contrasenaController.dispose();
     _animController.dispose();
     super.dispose();
-  }
-
-  Widget slideFadeTransition(Widget child, Animation<double> animation) {
-    final offsetAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(animation);
-
-    return SlideTransition(
-      position: offsetAnimation,
-      child: FadeTransition(opacity: animation, child: child),
-    );
   }
 
   Widget _buildLoadingWidget({double size = 36}) {
@@ -230,6 +217,7 @@ class _InitialFormState extends State<InitialForm>
     if (actualizando) return;
     setState(() => actualizando = true);
 
+    // Usuarios
     setState(() {
       mostrarUsuarios = true;
       cargandoUsuarios = true;
@@ -237,6 +225,7 @@ class _InitialFormState extends State<InitialForm>
     await Future.delayed(const Duration(milliseconds: 1500));
     setState(() => cargandoUsuarios = false);
 
+    // Contador
     setState(() {
       mostrarContador = true;
       cargandoContador = true;
@@ -271,7 +260,6 @@ class _InitialFormState extends State<InitialForm>
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 6,
-                    shadowColor: Colors.indigoAccent.withOpacity(0.6),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -286,8 +274,6 @@ class _InitialFormState extends State<InitialForm>
                               ),
                             ),
                             style: const TextStyle(color: Colors.white),
-                            keyboardType: TextInputType.emailAddress,
-                            enabled: true,
                           ),
                           const SizedBox(height: 16),
                           TextField(
@@ -301,13 +287,7 @@ class _InitialFormState extends State<InitialForm>
                               ),
                             ),
                             style: const TextStyle(color: Colors.white),
-                            enabled: true,
                           ),
-                          if (cargandoFormulario)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: _buildLoadingWidget(size: 30),
-                            ),
                         ],
                       ),
                     ),
@@ -356,7 +336,7 @@ class _InitialFormState extends State<InitialForm>
                       formularioCubit.actualizarDatos(correo, contrasena);
                       formularioCubit.registrarUsuario(correo, contrasena);
 
-                      // INCREMENTAR contador
+                      // Incrementar contador
                       formularioCubit.incrementarContador();
 
                       // CERRAR LoadingView
@@ -382,27 +362,25 @@ class _InitialFormState extends State<InitialForm>
 
                   const SizedBox(height: 16),
 
-                  // CONTADOR
-                  mostrarContador
+                  // Usuarios con animación de carga
+                  mostrarUsuarios
                       ? AnimatedSwitcher(
                           duration: const Duration(milliseconds: 500),
-                          transitionBuilder: slideFadeTransition,
-                          child: cargandoContador
+                          child: cargandoUsuarios
                               ? _buildLoadingWidget()
-                              : const ContadorWidget(key: ValueKey('contador')),
+                              : const UsuariosWidget(key: ValueKey('usuarios')),
                         )
                       : const SizedBox.shrink(),
 
                   const SizedBox(height: 16),
 
-                  // USUARIOS
-                  mostrarUsuarios
+                  // Contador con animación de carga
+                  mostrarContador
                       ? AnimatedSwitcher(
                           duration: const Duration(milliseconds: 500),
-                          transitionBuilder: slideFadeTransition,
-                          child: cargandoUsuarios
+                          child: cargandoContador
                               ? _buildLoadingWidget()
-                              : const UsuariosWidget(key: ValueKey('usuarios')),
+                              : const ContadorWidget(key: ValueKey('contador')),
                         )
                       : const SizedBox.shrink(),
                 ],
