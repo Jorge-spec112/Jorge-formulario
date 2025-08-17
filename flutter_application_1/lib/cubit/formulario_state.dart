@@ -1,51 +1,38 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:equatable/equatable.dart';
+// formulario_state.dart
+import 'package:flutter_application_1/usuario.dart';
 
-// Estado
-class FormularioState extends Equatable {
+class FormularioState {
   final String correo;
   final String contrasena;
   final bool cargando;
+  final bool registrado;
+  final int contador;
+  final List<Usuario> usuarios;
 
   const FormularioState({
     this.correo = '',
     this.contrasena = '',
     this.cargando = false,
+    this.registrado = false,
+    this.contador = 0,
+    this.usuarios = const [],
   });
 
   FormularioState copyWith({
     String? correo,
     String? contrasena,
     bool? cargando,
+    bool? registrado,
+    int? contador,
+    List<Usuario>? usuarios,
   }) {
     return FormularioState(
       correo: correo ?? this.correo,
       contrasena: contrasena ?? this.contrasena,
       cargando: cargando ?? this.cargando,
+      registrado: registrado ?? this.registrado,
+      contador: contador ?? this.contador,
+      usuarios: usuarios ?? this.usuarios,
     );
-  }
-
-  @override
-  List<Object?> get props => [correo, contrasena, cargando];
-}
-
-// Cubit
-class FormularioCubit extends Cubit<FormularioState> {
-  FormularioCubit() : super(const FormularioState());
-
-  void setCorreo(String correo) {
-    emit(state.copyWith(correo: correo));
-  }
-
-  void setContrasena(String contrasena) {
-    emit(state.copyWith(contrasena: contrasena));
-  }
-
-  void setCargando(bool cargando) {
-    emit(state.copyWith(cargando: cargando));
-  }
-
-  void actualizarDatos(String correo, String contrasena) {
-    emit(state.copyWith(correo: correo, contrasena: contrasena));
   }
 }

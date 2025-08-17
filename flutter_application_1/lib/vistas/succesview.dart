@@ -29,7 +29,6 @@ class SuccessView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Icono de éxito animado
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0, end: 1),
                   duration: const Duration(milliseconds: 800),
@@ -44,8 +43,6 @@ class SuccessView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Mensaje principal con fade-in escalonado
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0, end: 1),
                   duration: const Duration(milliseconds: 800),
@@ -64,8 +61,6 @@ class SuccessView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Datos del formulario con fade-in escalonado
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0, end: 1),
                   duration: const Duration(milliseconds: 800),
@@ -101,32 +96,32 @@ class SuccessView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Botón de volver
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0, end: 1),
                   duration: const Duration(milliseconds: 800),
                   curve: Curves.easeIn,
                   builder: (context, opacity, child) {
-                    return Opacity(opacity: opacity, child: child);
+                    return Opacity(
+                      opacity: opacity,
+                      child: ElevatedButton(
+                        onPressed: onBack,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.greenAccent[700],
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 24,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Volver",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
+                    );
                   },
-                  child: ElevatedButton(
-                    onPressed: onBack,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent[700],
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 24,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      "Volver",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
                 ),
               ],
             ),
