@@ -103,8 +103,6 @@ class UsuariosWidget extends StatelessWidget {
                 ),
                 const Divider(color: Colors.indigoAccent, thickness: 1),
                 const SizedBox(height: 8),
-
-                // Lista de usuarios
                 ...state.usuarios.map(
                   (u) => Container(
                     margin: const EdgeInsets.symmetric(vertical: 6),
@@ -158,15 +156,92 @@ class InitialForm extends StatefulWidget {
   State<InitialForm> createState() => _InitialFormState();
 }
 
-class _InitialFormState extends State<InitialForm> {
+class _InitialFormState extends State<InitialForm>
+    with SingleTickerProviderStateMixin {
   final correoController = TextEditingController();
   final contrasenaController = TextEditingController();
+
+  bool cargandoFormulario = false;
+  bool cargandoUsuarios = false;
+  bool cargandoContador = false;
+
+  bool mostrarUsuarios = false;
+  bool mostrarContador = false;
+
+  late AnimationController _animController;
+  late Animation<Color?> _colorAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+      lowerBound: 0.8,
+      upperBound: 1.2,
+    )..repeat(reverse: true);
+
+    _colorAnim = ColorTween(
+      begin: Colors.indigoAccent,
+      end: Colors.pinkAccent,
+    ).animate(_animController);
+  }
 
   @override
   void dispose() {
     correoController.dispose();
     contrasenaController.dispose();
+    _animController.dispose();
     super.dispose();
+  }
+
+  Future<void> actualizarSecuencial() async {
+    // 1. Cargar formulario
+    setState(() {
+      cargandoFormulario = true;
+    });
+    await Future.delayed(const Duration(seconds: 1));
+    setState(() => cargandoFormulario = false);
+
+    // 2. Cargar usuarios
+    setState(() {
+      mostrarUsuarios = true;
+      cargandoUsuarios = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 1500));
+    setState(() => cargandoUsuarios = false);
+
+    // 3. Cargar contador
+    setState(() {
+      mostrarContador = true;
+      cargandoContador = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 800));
+    setState(() => cargandoContador = false);
+  }
+
+  Widget _buildLoadingWidget({double size = 24}) {
+    return Center(
+      child: AnimatedBuilder(
+        animation: _animController,
+        builder: (context, child) {
+          return Transform.scale(scale: _animController.value, child: child);
+        },
+        child: AnimatedBuilder(
+          animation: _colorAnim,
+          builder: (context, child) {
+            return SizedBox(
+              height: size,
+              width: size,
+              child: CircularProgressIndicator(
+                color: _colorAnim.value,
+                strokeWidth: 3,
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -179,127 +254,161 @@ class _InitialFormState extends State<InitialForm> {
         title: const Text("Formulario"),
         backgroundColor: Colors.indigoAccent,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // FORMULARIO
-              Card(
-                color: Colors.grey[850],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 6,
-                shadowColor: Colors.indigoAccent.withOpacity(0.6),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: correoController,
-                        decoration: const InputDecoration(
-                          labelText: "Correo",
-                          prefixIcon: Icon(
-                            Icons.email,
-                            color: Colors.indigoAccent,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // FORMULARIO siempre visible
+                  Card(
+                    color: Colors.grey[850],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 6,
+                    shadowColor: Colors.indigoAccent.withOpacity(0.6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: cargandoFormulario
+                            ? _buildLoadingWidget(size: 36)
+                            : Column(
+                                key: const ValueKey('formFields'),
+                                children: [
+                                  TextField(
+                                    controller: correoController,
+                                    decoration: const InputDecoration(
+                                      labelText: "Correo",
+                                      prefixIcon: Icon(
+                                        Icons.email,
+                                        color: Colors.indigoAccent,
+                                      ),
+                                    ),
+                                    style: const TextStyle(color: Colors.white),
+                                    keyboardType: TextInputType.emailAddress,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  TextField(
+                                    controller: contrasenaController,
+                                    obscureText: true,
+                                    decoration: const InputDecoration(
+                                      labelText: "Contraseña",
+                                      prefixIcon: Icon(
+                                        Icons.lock,
+                                        color: Colors.indigoAccent,
+                                      ),
+                                    ),
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // BOTÓN GUARDAR
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigoAccent,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 24,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoadingView()),
+                      );
+
+                      await Future.delayed(const Duration(seconds: 2));
+
+                      final correo = correoController.text;
+                      final contrasena = contrasenaController.text;
+
+                      if (correo.isEmpty || !correo.contains("@")) {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FailureView(
+                              mensaje: "Correo inválido",
+                              onRetry: () => Navigator.pop(context),
+                            ),
                           ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: contrasenaController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: "Contraseña",
-                          prefixIcon: Icon(
-                            Icons.lock,
-                            color: Colors.indigoAccent,
+                        );
+                      } else {
+                        formularioCubit.actualizarDatos(correo, contrasena);
+                        formularioCubit.incrementarContador();
+                        formularioCubit.registrarUsuario(correo, contrasena);
+
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SuccessView(
+                              correo: correo,
+                              contrasena: contrasena,
+                              onBack: () => Navigator.pop(context),
+                            ),
                           ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ],
+                        );
+                      }
+                    },
+                    child: const Text(
+                      "Guardar datos",
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
                   ),
-                ),
+
+                  const SizedBox(height: 16),
+
+                  // CONTADOR solo visible tras actualizar
+                  mostrarContador
+                      ? AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: cargandoContador
+                              ? _buildLoadingWidget()
+                              : const ContadorWidget(key: ValueKey('contador')),
+                        )
+                      : const SizedBox.shrink(),
+
+                  const SizedBox(height: 16),
+
+                  // LISTA DE USUARIOS solo visible tras actualizar
+                  mostrarUsuarios
+                      ? AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: cargandoUsuarios
+                              ? _buildLoadingWidget()
+                              : const UsuariosWidget(key: ValueKey('usuarios')),
+                        )
+                      : const SizedBox.shrink(),
+                ],
               ),
-
-              const SizedBox(height: 16),
-
-              // BOTÓN GUARDAR
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigoAccent,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 24,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () async {
-                  // 1. Mostrar Loading
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoadingView()),
-                  );
-
-                  await Future.delayed(const Duration(seconds: 2));
-
-                  final correo = correoController.text;
-                  final contrasena = contrasenaController.text;
-
-                  // 2. Validar correo
-                  if (correo.isEmpty || !correo.contains("@")) {
-                    Navigator.pop(context); // cerrar Loading
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FailureView(
-                          mensaje: "Correo inválido",
-                          onRetry: () => Navigator.pop(context),
-                        ),
-                      ),
-                    );
-                  } else {
-                    // 3. Registrar usuario
-                    formularioCubit.actualizarDatos(correo, contrasena);
-                    formularioCubit.incrementarContador();
-                    formularioCubit.registrarUsuario(correo, contrasena);
-
-                    Navigator.pop(context); // cerrar Loading
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SuccessView(
-                          correo: correo,
-                          contrasena: contrasena,
-                          onBack: () => Navigator.pop(context),
-                        ),
-                      ),
-                    );
-                  }
-                },
-                child: const Text(
-                  "Guardar datos",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // CONTADOR
-              const ContadorWidget(),
-              const SizedBox(height: 16),
-
-              // LISTA DE USUARIOS
-              const UsuariosWidget(),
-            ],
+            ),
           ),
-        ),
+
+          // BOTÓN ACTUALIZAR SECUECIAL
+          Positioned(
+            bottom: 16,
+            left: 16,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Colors.indigoAccent,
+              onPressed: actualizarSecuencial,
+              child: const Icon(Icons.refresh),
+            ),
+          ),
+        ],
       ),
     );
   }
