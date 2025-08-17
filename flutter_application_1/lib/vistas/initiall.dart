@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/cubit/formulario_cubit.dart';
 import 'package:flutter_application_1/cubit/formulario_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_1/cubit/formulario_cubit.dart';
 import 'package:flutter_application_1/vistas/failure.dart';
 import 'package:flutter_application_1/vistas/loading.dart';
 import 'package:flutter_application_1/vistas/succesview.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-// -----------------------------
-// WIDGET CONTADOR
-// -----------------------------
+// ----------------- ContadorWidget -----------------
 class ContadorWidget extends StatelessWidget {
   const ContadorWidget({super.key});
 
@@ -49,9 +47,7 @@ class ContadorWidget extends StatelessWidget {
   }
 }
 
-// -----------------------------
-// WIDGET USUARIOS
-// -----------------------------
+// ----------------- UsuariosWidget -----------------
 class UsuariosWidget extends StatelessWidget {
   const UsuariosWidget({super.key});
 
@@ -146,9 +142,7 @@ class UsuariosWidget extends StatelessWidget {
   }
 }
 
-// -----------------------------
-// FORMULARIO PRINCIPAL
-// -----------------------------
+// ----------------- InitialForm -----------------
 class InitialForm extends StatefulWidget {
   const InitialForm({super.key});
 
@@ -167,6 +161,7 @@ class _InitialFormState extends State<InitialForm>
 
   bool mostrarUsuarios = false;
   bool mostrarContador = false;
+  bool actualizando = false;
 
   late AnimationController _animController;
   late Animation<Color?> _colorAnim;
@@ -195,32 +190,19 @@ class _InitialFormState extends State<InitialForm>
     super.dispose();
   }
 
-  Future<void> actualizarSecuencial() async {
-    // 1. Cargar formulario
-    setState(() {
-      cargandoFormulario = true;
-    });
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => cargandoFormulario = false);
+  Widget slideFadeTransition(Widget child, Animation<double> animation) {
+    final offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(animation);
 
-    // 2. Cargar usuarios
-    setState(() {
-      mostrarUsuarios = true;
-      cargandoUsuarios = true;
-    });
-    await Future.delayed(const Duration(milliseconds: 1500));
-    setState(() => cargandoUsuarios = false);
-
-    // 3. Cargar contador
-    setState(() {
-      mostrarContador = true;
-      cargandoContador = true;
-    });
-    await Future.delayed(const Duration(milliseconds: 800));
-    setState(() => cargandoContador = false);
+    return SlideTransition(
+      position: offsetAnimation,
+      child: FadeTransition(opacity: animation, child: child),
+    );
   }
 
-  Widget _buildLoadingWidget({double size = 24}) {
+  Widget _buildLoadingWidget({double size = 36}) {
     return Center(
       child: AnimatedBuilder(
         animation: _animController,
@@ -244,6 +226,27 @@ class _InitialFormState extends State<InitialForm>
     );
   }
 
+  Future<void> actualizarSecuencial() async {
+    if (actualizando) return;
+    setState(() => actualizando = true);
+
+    setState(() {
+      mostrarUsuarios = true;
+      cargandoUsuarios = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 1500));
+    setState(() => cargandoUsuarios = false);
+
+    setState(() {
+      mostrarContador = true;
+      cargandoContador = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 800));
+    setState(() => cargandoContador = false);
+
+    setState(() => actualizando = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final formularioCubit = context.read<FormularioCubit>();
@@ -261,7 +264,7 @@ class _InitialFormState extends State<InitialForm>
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // FORMULARIO siempre visible
+                  // FORMULARIO
                   Card(
                     color: Colors.grey[850],
                     shape: RoundedRectangleBorder(
@@ -271,40 +274,41 @@ class _InitialFormState extends State<InitialForm>
                     shadowColor: Colors.indigoAccent.withOpacity(0.6),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: cargandoFormulario
-                            ? _buildLoadingWidget(size: 36)
-                            : Column(
-                                key: const ValueKey('formFields'),
-                                children: [
-                                  TextField(
-                                    controller: correoController,
-                                    decoration: const InputDecoration(
-                                      labelText: "Correo",
-                                      prefixIcon: Icon(
-                                        Icons.email,
-                                        color: Colors.indigoAccent,
-                                      ),
-                                    ),
-                                    style: const TextStyle(color: Colors.white),
-                                    keyboardType: TextInputType.emailAddress,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  TextField(
-                                    controller: contrasenaController,
-                                    obscureText: true,
-                                    decoration: const InputDecoration(
-                                      labelText: "Contraseña",
-                                      prefixIcon: Icon(
-                                        Icons.lock,
-                                        color: Colors.indigoAccent,
-                                      ),
-                                    ),
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ],
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: correoController,
+                            decoration: const InputDecoration(
+                              labelText: "Correo",
+                              prefixIcon: Icon(
+                                Icons.email,
+                                color: Colors.indigoAccent,
                               ),
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            keyboardType: TextInputType.emailAddress,
+                            enabled: true,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: contrasenaController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: "Contraseña",
+                              prefixIcon: Icon(
+                                Icons.lock,
+                                color: Colors.indigoAccent,
+                              ),
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            enabled: true,
+                          ),
+                          if (cargandoFormulario)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: _buildLoadingWidget(size: 30),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -324,18 +328,10 @@ class _InitialFormState extends State<InitialForm>
                       ),
                     ),
                     onPressed: () async {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoadingView()),
-                      );
-
-                      await Future.delayed(const Duration(seconds: 2));
-
                       final correo = correoController.text;
                       final contrasena = contrasenaController.text;
 
                       if (correo.isEmpty || !correo.contains("@")) {
-                        Navigator.pop(context);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -345,23 +341,38 @@ class _InitialFormState extends State<InitialForm>
                             ),
                           ),
                         );
-                      } else {
-                        formularioCubit.actualizarDatos(correo, contrasena);
-                        formularioCubit.incrementarContador();
-                        formularioCubit.registrarUsuario(correo, contrasena);
-
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SuccessView(
-                              correo: correo,
-                              contrasena: contrasena,
-                              onBack: () => Navigator.pop(context),
-                            ),
-                          ),
-                        );
+                        return;
                       }
+
+                      // MOSTRAR LoadingView
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoadingView()),
+                      );
+
+                      await Future.delayed(const Duration(seconds: 2));
+
+                      // Registrar usuario
+                      formularioCubit.actualizarDatos(correo, contrasena);
+                      formularioCubit.registrarUsuario(correo, contrasena);
+
+                      // INCREMENTAR contador
+                      formularioCubit.incrementarContador();
+
+                      // CERRAR LoadingView
+                      Navigator.pop(context);
+
+                      // Mostrar SuccessView
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SuccessView(
+                            correo: correo,
+                            contrasena: contrasena,
+                            onBack: () => Navigator.pop(context),
+                          ),
+                        ),
+                      );
                     },
                     child: const Text(
                       "Guardar datos",
@@ -371,10 +382,11 @@ class _InitialFormState extends State<InitialForm>
 
                   const SizedBox(height: 16),
 
-                  // CONTADOR solo visible tras actualizar
+                  // CONTADOR
                   mostrarContador
                       ? AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
+                          duration: const Duration(milliseconds: 500),
+                          transitionBuilder: slideFadeTransition,
                           child: cargandoContador
                               ? _buildLoadingWidget()
                               : const ContadorWidget(key: ValueKey('contador')),
@@ -383,10 +395,11 @@ class _InitialFormState extends State<InitialForm>
 
                   const SizedBox(height: 16),
 
-                  // LISTA DE USUARIOS solo visible tras actualizar
+                  // USUARIOS
                   mostrarUsuarios
                       ? AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
+                          duration: const Duration(milliseconds: 500),
+                          transitionBuilder: slideFadeTransition,
                           child: cargandoUsuarios
                               ? _buildLoadingWidget()
                               : const UsuariosWidget(key: ValueKey('usuarios')),
@@ -397,14 +410,14 @@ class _InitialFormState extends State<InitialForm>
             ),
           ),
 
-          // BOTÓN ACTUALIZAR SECUECIAL
+          // BOTÓN ACTUALIZAR
           Positioned(
             bottom: 16,
             left: 16,
             child: FloatingActionButton(
               mini: true,
-              backgroundColor: Colors.indigoAccent,
-              onPressed: actualizarSecuencial,
+              backgroundColor: actualizando ? Colors.grey : Colors.indigoAccent,
+              onPressed: actualizando ? null : actualizarSecuencial,
               child: const Icon(Icons.refresh),
             ),
           ),
