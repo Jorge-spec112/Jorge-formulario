@@ -6,47 +6,6 @@ import 'package:flutter_application_1/vistas/failure.dart';
 import 'package:flutter_application_1/vistas/loading.dart';
 import 'package:flutter_application_1/vistas/succesview.dart';
 
-// ----------------- ContadorWidget -----------------
-class ContadorWidget extends StatelessWidget {
-  const ContadorWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<FormularioCubit, FormularioState>(
-      builder: (context, state) {
-        return Card(
-          color: Colors.grey[850],
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.countertops,
-                  color: Colors.indigoAccent,
-                  size: 30,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "Usuarios registrados: ${state.contador}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 // ----------------- UsuariosWidget -----------------
 class UsuariosWidget extends StatelessWidget {
   const UsuariosWidget({super.key});
@@ -155,11 +114,8 @@ class _InitialFormState extends State<InitialForm>
   final correoController = TextEditingController();
   final contrasenaController = TextEditingController();
 
-  bool mostrarUsuarios = false;
-  bool mostrarContador = false;
-
   bool cargandoUsuarios = false;
-  bool cargandoContador = false;
+  bool cargandoFormulario = false;
   bool actualizando = false;
 
   late AnimationController _animController;
@@ -189,51 +145,54 @@ class _InitialFormState extends State<InitialForm>
     super.dispose();
   }
 
-  Widget _buildLoadingWidget({double size = 36}) {
-    return Center(
+  Widget _buildLoadingIcon({double size = 30}) {
+    return AnimatedBuilder(
+      animation: _animController,
+      builder: (context, child) {
+        return Transform.scale(scale: _animController.value, child: child);
+      },
       child: AnimatedBuilder(
-        animation: _animController,
+        animation: _colorAnim,
         builder: (context, child) {
-          return Transform.scale(scale: _animController.value, child: child);
+          return SizedBox(
+            height: size,
+            width: size,
+            child: CircularProgressIndicator(
+              color: _colorAnim.value,
+              strokeWidth: 3,
+            ),
+          );
         },
-        child: AnimatedBuilder(
-          animation: _colorAnim,
-          builder: (context, child) {
-            return SizedBox(
-              height: size,
-              width: size,
-              child: CircularProgressIndicator(
-                color: _colorAnim.value,
-                strokeWidth: 3,
-              ),
-            );
-          },
-        ),
       ),
     );
   }
 
+  // En actualizarSecuencial()
   Future<void> actualizarSecuencial() async {
     if (actualizando) return;
-    setState(() => actualizando = true);
+    setState(() {
+      actualizando = true;
+      cargandoFormulario = true; // 🔹 muestra carga en formulario
+      cargandoUsuarios = false; // 🔹 usuarios en espera
+    });
+
+    // Simula carga del formulario
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      cargandoFormulario = false;
+      correoController.clear();
+      contrasenaController.clear();
+    });
 
     // Usuarios
     setState(() {
-      mostrarUsuarios = true;
-      cargandoUsuarios = true;
+      cargandoUsuarios = true; // 🔹 loading en usuarios
     });
-    await Future.delayed(const Duration(milliseconds: 1500));
-    setState(() => cargandoUsuarios = false);
-
-    // Contador
+    await Future.delayed(const Duration(seconds: 2));
     setState(() {
-      mostrarContador = true;
-      cargandoContador = true;
+      cargandoUsuarios = false;
+      actualizando = false;
     });
-    await Future.delayed(const Duration(milliseconds: 800));
-    setState(() => cargandoContador = false);
-
-    setState(() => actualizando = false);
   }
 
   @override
@@ -262,34 +221,39 @@ class _InitialFormState extends State<InitialForm>
                     elevation: 6,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: correoController,
-                            decoration: const InputDecoration(
-                              labelText: "Correo",
-                              prefixIcon: Icon(
-                                Icons.email,
-                                color: Colors.indigoAccent,
-                              ),
+                      child: cargandoFormulario
+                          ? SizedBox(
+                              height: 100,
+                              child: Center(child: _buildLoadingIcon(size: 40)),
+                            )
+                          : Column(
+                              children: [
+                                TextField(
+                                  controller: correoController,
+                                  decoration: const InputDecoration(
+                                    labelText: "Correo",
+                                    prefixIcon: Icon(
+                                      Icons.email,
+                                      color: Colors.indigoAccent,
+                                    ),
+                                  ),
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                const SizedBox(height: 16),
+                                TextField(
+                                  controller: contrasenaController,
+                                  obscureText: true,
+                                  decoration: const InputDecoration(
+                                    labelText: "Contraseña",
+                                    prefixIcon: Icon(
+                                      Icons.lock,
+                                      color: Colors.indigoAccent,
+                                    ),
+                                  ),
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ],
                             ),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: contrasenaController,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: "Contraseña",
-                              prefixIcon: Icon(
-                                Icons.lock,
-                                color: Colors.indigoAccent,
-                              ),
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
 
@@ -336,9 +300,6 @@ class _InitialFormState extends State<InitialForm>
                       formularioCubit.actualizarDatos(correo, contrasena);
                       formularioCubit.registrarUsuario(correo, contrasena);
 
-                      // Incrementar contador
-                      formularioCubit.incrementarContador();
-
                       // CERRAR LoadingView
                       Navigator.pop(context);
 
@@ -362,27 +323,10 @@ class _InitialFormState extends State<InitialForm>
 
                   const SizedBox(height: 16),
 
-                  // Usuarios con animación de carga
-                  mostrarUsuarios
-                      ? AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 500),
-                          child: cargandoUsuarios
-                              ? _buildLoadingWidget()
-                              : const UsuariosWidget(key: ValueKey('usuarios')),
-                        )
-                      : const SizedBox.shrink(),
-
-                  const SizedBox(height: 16),
-
-                  // Contador con animación de carga
-                  mostrarContador
-                      ? AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 500),
-                          child: cargandoContador
-                              ? _buildLoadingWidget()
-                              : const ContadorWidget(key: ValueKey('contador')),
-                        )
-                      : const SizedBox.shrink(),
+                  // 🔹 UsuariosWidget SIEMPRE visible
+                  cargandoUsuarios
+                      ? _buildLoadingIcon(size: 30)
+                      : const UsuariosWidget(),
                 ],
               ),
             ),

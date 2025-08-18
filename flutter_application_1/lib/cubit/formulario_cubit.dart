@@ -1,5 +1,5 @@
 import 'package:bloc/bloc.dart';
-import 'package:flutter_application_1/usuario.dart';
+import 'package:flutter_application_1/usuario.dart' hide FormularioState;
 import 'formulario_state.dart';
 
 class FormularioCubit extends Cubit<FormularioState> {
@@ -17,4 +17,12 @@ class FormularioCubit extends Cubit<FormularioState> {
     final nuevoUsuario = Usuario(correo: correo, contrasena: contrasena);
     emit(state.copyWith(usuarios: [...state.usuarios, nuevoUsuario]));
   }
+
+  void reiniciarUsuarios() {
+    emit(state.copyWith(usuarios: []));
+  }
+
+  void enviarFormulario(String text, String text2) {}
+
+  void agregarUsuario(String correo, String contrasena) {}
 }
